@@ -102,8 +102,9 @@
 
 ;; escaped parens inside paren string are fouling things up
 ;; the "\\(.*?\\)" goes from the first (real) paren to the escaped right paren,
+;; because of the non-greedy matching,
 ;; leaving a stray paren unparsed, which causes the fouling
-(parse-pdf-bytes (open-input-bytes #"/Producer (Racket 7.3.0.12 \\(Pitfall library\\))
+#;(parse-pdf-bytes (open-input-bytes #"/Producer (Racket 7.3.0.12 \\(Pitfall library\\))
 /ModDate 1566421411"))
 
 (define (pdf->dict pdf)
