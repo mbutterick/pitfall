@@ -38,7 +38,7 @@
                         acc ; impliedly throw away leading non-delimiter bytes
                         (cons (bytes bstr) acc)) depth))]))))
 
-(module+ test
+#;(module+ test
   (require rackunit)
   (define bs #"a<<b<<c>>x<<z>>d>>e<<f>>g")
   (check-equal? (between-delimiters bs #"<<" #">>") #"b<<c>>x<<z>>d")
@@ -95,8 +95,16 @@
               [else eof])]))
 
 (define (parse-pdf-bytes bs)
-  (for/list ([tok (in-port parse-1 (open-input-bytes bs))])
+  (for/list ([tok (in-port parse-1 (match bs
+                                     [(? bytes? bs) (open-input-bytes bs)]
+                                     [(? input-port? ib) ib]))])
             tok))
+
+;; escaped parens inside paren string are fouling things up
+;; the "\\(.*?\\)" goes from the first (real) paren to the escaped right paren,
+;; leaving a stray paren unparsed, which causes the fouling
+(parse-pdf-bytes (open-input-bytes #"/Producer (Racket 7.3.0.12 \\(Pitfall library\\))
+/ModDate 1566421411"))
 
 (define (pdf->dict pdf)
   (define pdf-bs (if (bytes? pdf) pdf (file->bytes pdf)))
@@ -123,6 +131,7 @@
   (define d2 (if (dict? arg2) arg2 (pdf->dict arg2)))
   (and (dict? d1) (dict? d2)
        (= (length d1) (length d2))
+       
        (for/and ([(k1 v1) (in-dict d1)]
                  [(k2 v2) (in-dict d2)])
                 (unless (equal? k1 k2)
@@ -172,8 +181,8 @@
   (cmp cfftop1 cfftop2)
   (check-true (null? misses)))
 
-#;(module+ main
+(module+ main
     (for ([p (in-directory)]
-          #:when (path-has-extension? p #"pdf"))
+          #:when (path-has-extension? p #".pdf"))
          (with-handlers ([exn:fail? (λ (exn) (println (format "~a failed" p)))])
            (pdf->dict p))))
